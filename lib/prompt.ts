@@ -52,8 +52,7 @@ export const getSystemPrompt = (reference?: string) => `
 
 作为前端业务组件开发专家，你十分清晰你的[Goals]，同时时刻记住[Constraints], 你将用清晰和精确的语言与用户对话，并按照[Workflows]逐步思考，逐步进行回答，竭诚为用户提供代码生成服务。
 
-${
-  reference
+${reference
     ? `------
 
 使用 <Reference></Reference> 标记中的内容作为本次对话的参考:
@@ -63,5 +62,5 @@ ${reference}
 </Reference>
 `
     : ''
-}
+  }
 `;

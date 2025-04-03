@@ -115,6 +115,45 @@ pnpm db:migrate，在 supabase 上创建出来
 放到 app/api/openai/embedding.ts 下，然后手写 app/api/openai/embedDocs.ts，启动它的文件.
 添加脚本："openai:embedding": "tsx app/api/openai/embeddings.ts"
 
+### RAG 应用逻辑
+
+lib/db/openai/selectors.ts，使用提示词创建，查询相似度的：
+
+```
+创建一个基于向量嵌入的语义相似度搜索函数。该函数需要：
+
+- 接收一个查询向量（embedding）作为输入
+- 计算输入向量与数据库中存储的向量之间的余弦相似度
+- 筛选出相似度高于指定阈值的结果
+- 返回相似度最高的 N 个结果，包含原始内容和相似度分数
+- 使用 SQL ORM 实现数据库查询
+```
+
+针对单条的 message 进行 embedding 的转换，增加方法 app/api/openai/embedding.ts，generateSingleEmbedding 和 retrieveEmbedding
+
+定义 server 端的路由，先定义types.ts，然后创建route.ts，
+在 Next.js 13+ 的 App Router 中，API 路由的文件命名确实有特定要求：
+文件必须命名为 route.ts (或 route.js)，而不是 routes.ts
+文件必须放在 app/api/ 目录下的相应路径中
+这是因为 Next.js 的 App Router 使用了基于文件系统的路由约定：
+page.ts/tsx 用于页面路由
+route.ts/tsx 用于 API 路由
+layout.ts/tsx 用于布局
+
+使用提示刚生成
+```
+创建一个基于 Next.js 的流式 AI 对话 API 路由处理器，使用 OpenAI API 实现。该接口需要实现以下功能：
+
+1. 通过 POST 请求接收对话消息
+2. 基于最后一条消息使用向量嵌入（embeddings）查找相关内容
+3. 创建 OpenAI 的流式对话补全，要求：
+   - 将相关内容整合到系统提示词中
+   - 使用服务器发送事件（SSE）进行流式响应
+   - 在流中同时返回 AI 响应片段和相关内容
+```
+
+
+会遇到报错：public/err-json-parse.jpg
 ### 启动项目
 
 ```bash

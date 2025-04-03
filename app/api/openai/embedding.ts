@@ -1,5 +1,7 @@
+import { searchSimilarDocuments } from '@/lib/db/openai/selectors';
 import { env } from '@/lib/env.mjs';
 import OpenAI from 'openai';
+import { SearchResult } from '@/lib/db/openai/selectors';
 
 // 定义返回结果的接口
 interface EmbeddingResult {
@@ -45,7 +47,7 @@ export async function generateEmbeddings(
       throw new EmbeddingError('API key is required but not provided');
     }
 
-    
+
 
     // 按分隔符分割文本
     const textChunks = text
@@ -85,4 +87,68 @@ export async function generateEmbeddings(
     }
     throw new EmbeddingError('Unexpected error during embedding generation', error);
   }
+}
+// 生成单个embedding
+export async function generateSingleEmbedding(
+  text: string,
+  options: {
+    apiKey?: string;
+    model?: string;
+  }
+) {
+  try {
+    const {
+      apiKey = env.AI_KEY || '',
+      model = env.EMBEDDING
+    } = options;
+
+    if (!apiKey) {
+      throw new EmbeddingError('API key is required but not provided');
+    }
+    // 处理所有文本块
+    try {
+      const response = await embeddingAI.embeddings.create({
+        model,
+        input: text,
+        encoding_format: 'float'
+      });
+
+      // 将结果转换为指定格式
+      return {
+        text,
+        embedding: response.data[0].embedding
+      };
+    } catch (apiError: any) {
+      throw new EmbeddingError(
+        'Error while generating embeddings',
+        {
+          message: apiError.message,
+          status: apiError.status,
+          type: apiError.type
+        }
+      );
+    }
+  } catch (error) {
+    if (error instanceof EmbeddingError) {
+      throw error;
+    }
+    throw new EmbeddingError('Unexpected error during embedding generation', error);
+  }
+}
+// 检索召回
+export async function retrieveEmbedding(
+  text: string,
+  threshold: number = 0.7,
+  limit: number = 5
+): Promise<SearchResult[]> {
+  const embedding = await generateSingleEmbedding(text, {
+    model: env.EMBEDDING,
+    apiKey: env.AI_KEY || ''
+  });
+  const results = await searchSimilarDocuments(
+    embedding.embedding,
+    threshold,
+    limit
+  );
+  return results;
 }

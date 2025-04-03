@@ -61,44 +61,39 @@ const Home = () => {
 
       // 用于存储完整的响应内容
       let fullContent = '';
-      let buffer = '';
-      const dataRegex = /data: ({.+?})\n\n/g;
+      let references: any[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        // 将新的数据块添加到缓冲区
-        buffer += new TextDecoder().decode(value);
+        // 将 Uint8Array 转换为字符串
+        const chunk = new TextDecoder().decode(value);
+        const lines = chunk.split('\n');
 
-        // 从缓冲区中提取完整的 SSE 消息
-        let match;
-        while ((match = dataRegex.exec(buffer)) !== null) {
-          const data = match[1];
-          if (data === '[DONE]') continue;
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            // data: 后的内容, 应该是6个字符
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
 
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.content) {
-              fullContent += parsed.content;
-              // 更新消息
-              setMessages(prev =>
-                prev.map(msg =>
-                  msg.id === assistantMessage.id
-                    ? { ...msg, content: fullContent, ragDocs: parsed.references }
-                    : msg
-                )
-              );
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) {
+                fullContent += parsed.content;
+                // 更新消息
+                setMessages(prev =>
+                  prev.map(msg =>
+                    msg.id === assistantMessage.id
+                      ? { ...msg, content: fullContent, ragDocs: parsed.references }
+                      : msg
+                  )
+                );
+              }
+            } catch (e) {
+              console.error('解析响应数据失败:', e);
             }
-          } catch (e) {
-            console.error('解析响应数据失败:', e);
           }
-        }
-
-        // 保留未匹配完的数据
-        const lastNewlineIndex = buffer.lastIndexOf('\n\n');
-        if (lastNewlineIndex > -1) {
-          buffer = buffer.slice(lastNewlineIndex + 2);
         }
       }
     } catch (error) {
